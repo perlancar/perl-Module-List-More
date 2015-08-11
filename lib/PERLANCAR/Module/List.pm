@@ -85,8 +85,9 @@ sub list_modules($$) {
 =head1 DESCRIPTION
 
 This module is a fork of L<Module::List> 0.003. It's exactly like Module::List,
-except that it strips the usage of L<IO::Dir>, L<Carp>, L<File::Spec>, with the
-goal of saving a few milliseconds.
+except that it strips the usage of L<Exporter>, L<IO::Dir>, L<Carp>,
+L<File::Spec>, with the goal of saving a few milliseconds (a casual test on my
+PC results in 11ms vs 39ms).
 
 
 =head1 SEE ALSO
