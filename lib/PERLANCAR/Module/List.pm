@@ -3,6 +3,7 @@ package PERLANCAR::Module::List;
 # DATE
 # VERSION
 
+use 5.010001;
 #IFUNBUILT
 use strict;
 use warnings;
@@ -52,7 +53,7 @@ sub list_modules($$) {
 				if(($list_modules && $entry =~ $pm_rx) ||
 						($list_pod &&
 							$entry =~ $pod_rx)) {
-					$results{$prefix.$1} = $return_path ? "$dir/$entry" : undef;
+					$results{$prefix.$1} //= $return_path ? "$dir/$entry" : undef;
 				} elsif(($list_prefixes || $recurse) &&
 						($entry ne '.' && $entry ne '..') &&
 						$entry =~ $dir_rx &&
@@ -60,7 +61,7 @@ sub list_modules($$) {
 							$entry)) {
 					my $newpfx = $prefix.$entry."::";
 					next if exists $seen_prefixes{$newpfx};
-					$results{$newpfx} = $return_path ? "$dir/$entry/" : undef
+					$results{$newpfx} //= $return_path ? "$dir/$entry/" : undef
 						if $list_prefixes;
 					push @prefixes, $newpfx if $recurse;
 				}
