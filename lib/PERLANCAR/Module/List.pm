@@ -80,7 +80,7 @@ sub list_modules($$) {
 }
 
 1;
-# ABSTRACT: Like Module::List, but with lower startup overhead
+# ABSTRACT: A fork of Module::List
 
 =for Pod::Coverage .+
 
@@ -97,7 +97,7 @@ It strips the usage of L<Exporter>, L<IO::Dir>, L<Carp>, L<File::Spec>, with the
 goal of saving a few milliseconds (a casual test on my PC results in 11ms vs
 39ms).
 
-Path separator a hard-coded C</>.
+Path separator is hard-coded as C</>.
 
 =item * Recognize C<return_path> option
 
