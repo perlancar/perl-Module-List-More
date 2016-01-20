@@ -88,7 +88,9 @@ sub list_modules($$) {
 This module is a fork of L<Module::List> 0.003. It's exactly like Module::List,
 except for the following differences:
 
-=over * lower startup overhead (with some caveats)
+=over
+
+=item * lower startup overhead (with some caveats)
 
 It strips the usage of L<Exporter>, L<IO::Dir>, L<Carp>, L<File::Spec>, with the
 goal of saving a few milliseconds (a casual test on my PC results in 11ms vs
@@ -96,12 +98,14 @@ goal of saving a few milliseconds (a casual test on my PC results in 11ms vs
 
 Path separator a hard-coded C</>.
 
-=over * Recognize C<return_path> option
+=item * Recognize C<return_path> option
 
 Normally the returned hash has C<undef> as the values. With this option set to
 true, the values will contain the path instead. Useful if you want to collect
 all the paths, instead of having to use L<Module::Path> or L<Module::Path::More>
 for each module again.
+
+=back
 
 
 =head1 SEE ALSO
