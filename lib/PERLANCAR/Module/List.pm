@@ -71,7 +71,7 @@ sub list_modules($$) {
 			opendir($dh, $dir) or next;
 			while(defined(my $entry = readdir($dh))) {
 				if($entry =~ $pod_rx) {
-					$results{$prefix.$1} = undef;
+					$results{$prefix.$1} = $return_path ? "$dir/$entry" : undef;
 				}
 			}
 		}
