@@ -1,5 +1,15 @@
 Revision history for PERLANCAR-Module-List
 
+0.003004 2016-03-15 (PERLANCAR)
+
+	- Add option: all.
+
+	- [Bugfix] Didn't return path when return_path=>1 and list_pod=>1 &
+	  use_pod_dir=>1.
+
+	- Support 5.006 back.
+
+
 0.003003 2016-01-21 (PERLANCAR)
 
          - [Bugfix] Don't assign to result multiple times, overriding the first
