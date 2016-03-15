@@ -32,6 +32,7 @@ sub list_modules($$) {
 	return {} unless $list_modules || $list_prefixes || $list_pod;
 	my $recurse = $options->{recurse};
 	my $return_path = $options->{return_path};
+	my $all = $options->{all};
 	my @prefixes = ($prefix);
 	my %seen_prefixes;
 	my %results;
@@ -52,8 +53,8 @@ sub list_modules($$) {
 				if(($list_modules && $entry =~ $pm_rx) ||
 						($list_pod &&
 							$entry =~ $pod_rx)) {
-					$results{$prefix.$1} = $return_path ? "$dir/$entry" : undef
-						if !exists($results{$prefix.$1});
+                                            $results{$prefix.$1} = $return_path ? ($all ? [@{ $results{$prefix.$1} || [] }, "$dir/$entry"] : "$dir/$entry") : undef
+						if $all && $return_path || !exists($results{$prefix.$1});
 				} elsif(($list_prefixes || $recurse) &&
 						($entry ne '.' && $entry ne '..') &&
 						$entry =~ $dir_rx &&
@@ -61,8 +62,8 @@ sub list_modules($$) {
 							$entry)) {
 					my $newpfx = $prefix.$entry."::";
 					next if exists $seen_prefixes{$newpfx};
-					$results{$newpfx} //= $return_path ? "$dir/$entry/" : undef
-						if !exists($results{$newpfx}) && $list_prefixes;
+					$results{$newpfx} //= $return_path ? ($all ? [@{ $results{$newpfx} || [] }, "$dir/$entry/"] : "$dir/$entry/") : undef
+						if ($all && $return_path || !exists($results{$newpfx})) && $list_prefixes;
 					push @prefixes, $newpfx if $recurse;
 				}
 			}
@@ -71,7 +72,7 @@ sub list_modules($$) {
 			opendir($dh, $dir) or next;
 			while(defined(my $entry = readdir($dh))) {
 				if($entry =~ $pod_rx) {
-					$results{$prefix.$1} = $return_path ? "$dir/$entry" : undef;
+					$results{$prefix.$1} = $return_path ? ($all ? [@{ $results{$prefix.$1} || [] }, "$dir/$entry"] : "$dir/$entry") : undef;
 				}
 			}
 		}
@@ -105,6 +106,12 @@ Normally the returned hash has C<undef> as the values. With this option set to
 true, the values will contain the path instead. Useful if you want to collect
 all the paths, instead of having to use L<Module::Path> or L<Module::Path::More>
 for each module again.
+
+=item * Recognize C<all> option
+
+If set to true and C<return_path> is also set to true, will return all found
+paths for each module instead of just the first found one. The values of result
+will be an arrayref containing all found paths.
 
 =back
 
