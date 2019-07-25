@@ -87,8 +87,8 @@ sub list_modules($$) {
 
 =head1 DESCRIPTION
 
-This module is a fork of L<Module::List> 0.003. It's exactly like Module::List,
-except for the following differences:
+This module is a fork of L<Module::List>. It's exactly like Module::List, except
+for the following differences:
 
 =over
 
@@ -99,13 +99,6 @@ goal of saving a few milliseconds (a casual test on my PC results in 11ms vs
 39ms).
 
 Path separator is hard-coded as C</>.
-
-=item * Recognize C<return_path> option
-
-Normally the returned hash has C<undef> as the values. With this option set to
-true, the values will contain the path instead. Useful if you want to collect
-all the paths, instead of having to use L<Module::Path> or L<Module::Path::More>
-for each module again.
 
 =item * Recognize C<all> option
 
