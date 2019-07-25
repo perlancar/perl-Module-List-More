@@ -94,9 +94,10 @@ for the following differences:
 
 =item * lower startup overhead (with some caveats)
 
-It strips the usage of L<Exporter>, L<IO::Dir>, L<Carp>, L<File::Spec>, with the
-goal of saving a few milliseconds (a casual test on my PC results in 11ms vs
-39ms).
+It strips the usage of L<Exporter> (so you cannot import C<list_modules()> and
+need to invoke it using fully qualified name), L<IO::Dir>, L<Carp>,
+L<File::Spec>, with the goal of saving a few milliseconds (a casual test on my
+PC results in 11ms vs 39ms).
 
 Path separator is hard-coded as C</>.
 
