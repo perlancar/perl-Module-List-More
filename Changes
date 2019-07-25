@@ -1,3 +1,9 @@
+0.004003  2019-07-25  Released-By: PERLANCAR; Urgency: medium
+
+	  - [dist] Make String::Wildcard::Bash an optional
+	    (runtime-recommends) dependency.
+
+
 0.004002  2019-07-25  Released-By: PERLANCAR; Urgency: medium
 
 	  - Support wildcard option.
