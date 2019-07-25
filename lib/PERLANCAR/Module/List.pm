@@ -8,6 +8,8 @@ use strict;
 use warnings;
 #END IFUNBUILT
 
+my $has_globstar;
+
 sub list_modules($$) {
     my($prefix, $options) = @_;
     my $trivial_syntax = $options->{trivial_syntax};
@@ -21,16 +23,39 @@ sub list_modules($$) {
         $root_leaf_rx = $root_notleaf_rx = qr/[a-zA-Z_][0-9a-zA-Z_]*/;
         $notroot_leaf_rx = $notroot_notleaf_rx = qr/[0-9a-zA-Z_]+/;
     }
+
+    my $re_wildcard;
+    if ($options->{wildcard}) {
+        require String::Wildcard::Bash;
+        my $orig_prefix = $prefix;
+        my @prefix_parts = split /::/, $prefix;
+        $prefix = "";
+        my $has_wildcard;
+        while (defined(my $part = shift @prefix_parts)) {
+            if (String::Wildcard::Bash::contains_wildcard($part)) {
+                $has_wildcard++;
+                last;
+            } else {
+                $prefix .= "$part\::";
+            }
+        }
+        if ($has_wildcard) {
+            $re_wildcard = convert_wildcard_to_re($orig_prefix);
+        }
+    }
+
     die "bad module name prefix `$prefix'"
         unless $prefix =~ /\A(?:${root_notleaf_rx}::
                                (?:${notroot_notleaf_rx}::)*)?\z/x &&
                                    $prefix !~ /(?:\A|[^:]::)\.\.?::/;
+
     my $list_modules = $options->{list_modules};
     my $list_prefixes = $options->{list_prefixes};
     my $list_pod = $options->{list_pod};
     my $use_pod_dir = $options->{use_pod_dir};
     return {} unless $list_modules || $list_prefixes || $list_pod;
     my $recurse = $options->{recurse};
+    $recurse = 1 if $has_globstar;
     my $return_path = $options->{return_path};
     my $all = $options->{all};
     my @prefixes = ($prefix);
@@ -53,14 +78,17 @@ sub list_modules($$) {
                 if(($list_modules && $entry =~ $pm_rx) ||
                        ($list_pod &&
                         $entry =~ $pod_rx)) {
-                    $results{$prefix.$1} = $return_path ? ($all ? [@{ $results{$prefix.$1} || [] }, "$dir/$entry"] : "$dir/$entry") : undef
-                        if $all && $return_path || !exists($results{$prefix.$1});
+                    my $key = $prefix.$1;
+                    next if $re_wildcard && $key !~ $re_wildcard;
+                    $results{$key} = $return_path ? ($all ? [@{ $results{$key} || [] }, "$dir/$entry"] : "$dir/$entry") : undef
+                        if $all && $return_path || !exists($results{$key});
                 } elsif(($list_prefixes || $recurse) &&
                             ($entry ne '.' && $entry ne '..') &&
                             $entry =~ $dir_rx &&
                             -d join("/", $dir,
                                     $entry)) {
                     my $newpfx = $prefix.$entry."::";
+                    next if $re_wildcard && ($list_prefixes || !$recurse) && $newpfx !~ $re_wildcard;
                     next if exists $seen_prefixes{$newpfx};
                     $results{$newpfx} = $return_path ? ($all ? [@{ $results{$newpfx} || [] }, "$dir/$entry/"] : "$dir/$entry/") : undef
                         if ($all && $return_path || !exists($results{$newpfx})) && $list_prefixes;
@@ -72,12 +100,76 @@ sub list_modules($$) {
             opendir($dh, $dir) or next;
             while(defined(my $entry = readdir($dh))) {
                 if($entry =~ $pod_rx) {
-                    $results{$prefix.$1} = $return_path ? ($all ? [@{ $results{$prefix.$1} || [] }, "$dir/$entry"] : "$dir/$entry") : undef;
+                    my $key = $prefix.$1;
+                    next if $re_wildcard && $key !~ $re_wildcard;
+                    $results{$key} = $return_path ? ($all ? [@{ $results{$key} || [] }, "$dir/$entry"] : "$dir/$entry") : undef;
                 }
             }
         }
     }
     return \%results;
+}
+
+sub convert_wildcard_to_re {
+    $has_globstar = 0;
+    my $re = _convert_wildcard_to_re(@_);
+    $re = qr/\A$re\z/;
+    #print "DEBUG: has_globstar=<$has_globstar>, re=$re\n";
+    $re;
+}
+
+# modified from String::Wildcard::Bash 0.040's convert_wildcard_to_re
+sub _convert_wildcard_to_re {
+    my $opts = ref $_[0] eq 'HASH' ? shift : {};
+    my $str = shift;
+
+    my $opt_brace   = $opts->{brace} // 1;
+
+    my @res;
+    my $p;
+    while ($str =~ /$String::Wildcard::Bash::RE_WILDCARD_BASH/g) {
+        my %m = %+;
+        if (defined($p = $m{bash_brace_content})) {
+            push @res, quotemeta($m{slashes_before_bash_brace}) if
+                $m{slashes_before_bash_brace};
+            if ($opt_brace) {
+                my @elems;
+                while ($p =~ /($String::Wildcard::Bash::re_bash_brace_element)(,|\z)/g) {
+                    push @elems, $1;
+                    last unless $2;
+                }
+                #use DD; dd \@elems;
+                push @res, "(?:", join("|", map {
+                    convert_wildcard_to_re({
+                        bash_brace => 0,
+                    }, $_)} @elems), ")";
+            } else {
+                push @res, quotemeta($m{bash_brace});
+            }
+
+        } elsif (defined($p = $m{bash_joker})) {
+            if ($p eq '?') {
+                push @res, '[^:]';
+            } elsif ($p eq '*') {
+                push @res, '[^:]*';
+            } elsif ($p eq '**') {
+                $has_globstar++;
+                push @res, '.*';
+            }
+
+        } elsif (defined($p = $m{literal_brace_single_element})) {
+            push @res, quotemeta($p);
+        } elsif (defined($p = $m{bash_class})) {
+            # XXX no need to escape some characters?
+            push @res, $p;
+        } elsif (defined($p = $m{sql_joker})) {
+            push @res, quotemeta($p);
+        } elsif (defined($p = $m{literal})) {
+            push @res, quotemeta($p);
+        }
+    }
+
+    join "", @res;
 }
 
 1;
@@ -106,6 +198,53 @@ Path separator is hard-coded as C</>.
 If set to true and C<return_path> is also set to true, will return all found
 paths for each module instead of just the first found one. The values of result
 will be an arrayref containing all found paths.
+
+=item * Recognize C<wildcard> option
+
+This boolean option can be set to true to recognize wildcard pattern in prefix.
+Wildcard patterns such as jokers (C<?>, C<*>, C<**>), classes (C<[a-z]>), as
+well as braces (C<{One,Two}>) are supported. C<**> implies recursive listing.
+
+Examples:
+
+ list_modules("Module::P*", {wildcard=>1, list_modules=>1});
+
+results in something like:
+
+ {
+     "Module::Patch"             => undef,
+     "Module::Path"              => undef,
+     "Module::Pluggable"         => undef,
+ }
+
+while:
+
+ list_modules("Module::P**", {wildcard=>1, list_modules=>1});
+
+results in something like:
+
+ {
+     "Module::Patch"             => undef,
+     "Module::Path"              => undef,
+     "Module::Path::More"        => undef,
+     "Module::Pluggable"         => undef,
+     "Module::Pluggable::Object" => undef,
+ }
+
+while:
+
+ list_modules("Module::**le", {wildcard=>1, list_modules=>1});
+
+results in something like:
+
+ {
+     "Module::Depakable"                => undef,
+     "Module::Install::Admin::Bundle"   => undef,
+     "Module::Install::Admin::Makefile" => undef,
+     "Module::Install::Bundle"          => undef,
+     "Module::Install::Makefile"        => undef,
+     "Module::Pluggable"                => undef,
+ }
 
 =back
 
