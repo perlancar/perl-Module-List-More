@@ -1,3 +1,14 @@
+0.004001  2019-07-25  Released-By: PERLANCAR; Urgency: low
+
+          - No functional changes.
+
+	  - [doc] Module::List 0.004 now also has return_path option, so we no
+            longer list it as a difference between us and Module::List.
+
+          - [fmt] Reformat with 4-space indent, just like Module::List 0.004
+            now.
+
+
 0.003005 2016-03-17  Released-By: PERLANCAR
 
 	- [Bugfix] Make module work under perl < 5.10.
@@ -18,8 +29,8 @@
          - [Bugfix] Don't assign to result multiple times, overriding the first
            path found (when 'return_path' is true).
 
-         - Bump minimum perl version to 5.10.1 because defined-or is easy.
-           UPDATE: has been reverted in 0.003004.
+         - Bump minimum perl version to 5.10.1 because defined-or is so
+           convenient. UPDATE: has been reverted in 0.003004.
 
 
 0.003002 2016-01-20  Released-By: PERLANCAR
