@@ -87,8 +87,9 @@ sub list_modules($$) {
                             $entry =~ $dir_rx &&
                             -d join("/", $dir,
                                     $entry)) {
-                    my $newpfx = $prefix.$entry."::";
-                    next if $re_wildcard && ($list_prefixes || !$recurse) && $newpfx !~ $re_wildcard;
+                    my $newmod = $prefix.$entry;
+                    my $newpfx = $newmod."::";
+                    next if $re_wildcard && ($list_prefixes || !$recurse) && $newmod !~ $re_wildcard;
                     next if exists $seen_prefixes{$newpfx};
                     $results{$newpfx} = $return_path ? ($all ? [@{ $results{$newpfx} || [] }, "$dir/$entry/"] : "$dir/$entry/") : undef
                         if ($all && $return_path || !exists($results{$newpfx})) && $list_prefixes;
