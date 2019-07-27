@@ -24,6 +24,10 @@ sub list_modules($$) {
         $notroot_leaf_rx = $notroot_notleaf_rx = qr/[0-9a-zA-Z_]+/;
     }
 
+    my $recurse = $options->{recurse};
+
+    # filter by wildcard. we cannot do this sooner because wildcard can be put
+    # at the end or at the beginning (e.g. '*::Path') so we still need
     my $re_wildcard;
     if ($options->{wildcard}) {
         require String::Wildcard::Bash;
@@ -34,6 +38,8 @@ sub list_modules($$) {
         while (defined(my $part = shift @prefix_parts)) {
             if (String::Wildcard::Bash::contains_wildcard($part)) {
                 $has_wildcard++;
+                # XXX limit recurse level to scalar(@prefix_parts), or -1 if has_globstar
+                $recurse = 1 if @prefix_parts;
                 last;
             } else {
                 $prefix .= "$part\::";
@@ -42,6 +48,7 @@ sub list_modules($$) {
         if ($has_wildcard) {
             $re_wildcard = convert_wildcard_to_re($orig_prefix);
         }
+        $recurse = 1 if $has_globstar;
     }
 
     die "bad module name prefix `$prefix'"
@@ -54,8 +61,6 @@ sub list_modules($$) {
     my $list_pod = $options->{list_pod};
     my $use_pod_dir = $options->{use_pod_dir};
     return {} unless $list_modules || $list_prefixes || $list_pod;
-    my $recurse = $options->{recurse};
-    $recurse = 1 if $has_globstar;
     my $return_path = $options->{return_path};
     my $all = $options->{all};
     my @prefixes = ($prefix);
@@ -89,7 +94,6 @@ sub list_modules($$) {
                                     $entry)) {
                     my $newmod = $prefix.$entry;
                     my $newpfx = $newmod."::";
-                    next if $re_wildcard && ($list_prefixes || !$recurse) && $newmod !~ $re_wildcard;
                     next if exists $seen_prefixes{$newpfx};
                     $results{$newpfx} = $return_path ? ($all ? [@{ $results{$newpfx} || [] }, "$dir/$entry/"] : "$dir/$entry/") : undef
                         if ($all && $return_path || !exists($results{$newpfx})) && $list_prefixes;
@@ -108,6 +112,17 @@ sub list_modules($$) {
             }
         }
     }
+
+    # we cannot filter prefixes early with wildcard because we need to dig down
+    # first and that would've been prevented if we had a wildcard like *::Foo.
+    if ($list_prefixes && $re_wildcard) {
+        for my $k (keys %results) {
+            next unless $k =~ /::\z/;
+            (my $k_nocolon = $k) =~ s/::\z//;
+            delete $results{$k} unless $k =~ $re_wildcard || $k_nocolon =~ $re_wildcard;
+        }
+    }
+
     return \%results;
 }
 
