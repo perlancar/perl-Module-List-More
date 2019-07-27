@@ -1,3 +1,11 @@
+0.004004  2019-07-27  Released-By: PERLANCAR; Urgency: medium
+
+	  - [bugfix] Fix wildcard matching which cut digging down early in
+	    the case of patterns like '*::Foo'.
+
+          - [test] Add test suite.
+
+
 0.004003  2019-07-25  Released-By: PERLANCAR; Urgency: medium
 
 	  - [dist] Make String::Wildcard::Bash an optional
