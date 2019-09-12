@@ -203,7 +203,7 @@ sub _convert_wildcard_to_re {
 
 =for Pod::Coverage .+
 
-=head1 SEE ALSO
+=head1 SYNOPSIS
 
 Use like you would L<Module::List>, e.g.:
 
