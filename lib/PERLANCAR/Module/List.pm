@@ -215,8 +215,10 @@ Use like you would L<Module::List>, e.g.:
 
 =head1 DESCRIPTION
 
-This module is a fork of L<Module::List>. It's exactly like Module::List, except
-for the following differences:
+This module is my personal experimental fork of L<Module::List>; the experiment
+has also produced other forks like L<Module::List::Tiny>,
+L<Module::List::Wildcard>. It's like Module::List, except for the following
+differences:
 
 =over
 
@@ -287,3 +289,7 @@ results in something like:
 =head1 SEE ALSO
 
 L<Module::List>
+
+L<Module::List::Tiny>
+
+L<Module::List::Wildcard>
