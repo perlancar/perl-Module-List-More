@@ -74,6 +74,7 @@ sub list_modules($$) {
     my $use_pod_dir = $options->{use_pod_dir};
     return {} unless $list_modules || $list_prefixes || $list_pod;
     my $return_path = $options->{return_path};
+    my $return_library_path = $options->{return_library_path};
     my $all = $options->{all};
     my @prefixes = ($prefix);
     my %seen_prefixes;
@@ -97,8 +98,8 @@ sub list_modules($$) {
                         $entry =~ $pod_rx)) {
                     my $key = $prefix.$1;
                     next if $re_wildcard && $key !~ $re_wildcard;
-                    $results{$key} = $return_path ? ($all ? [@{ $results{$key} || [] }, "$dir/$entry"] : "$dir/$entry") : undef
-                        if $all && $return_path || !exists($results{$key});
+                    $results{$key}{module_path}  = $all ? [@{ $results{$key}{module_path}  || [] }, "$dir/$entry"] : $results{$key}{module_path}  || "$dir/$entry";
+                    $results{$key}{library_path} = $all ? [@{ $results{$key}{library_path} || [] }, $incdir]       : $results{$key}{library_path} || $incdir        if $return_library_path;
                 } elsif(($list_prefixes || $recurse) &&
                             ($entry ne '.' && $entry ne '..') &&
                             $entry =~ $dir_rx &&
@@ -107,8 +108,8 @@ sub list_modules($$) {
                     my $newmod = $prefix.$entry;
                     my $newpfx = $newmod."::";
                     next if exists $seen_prefixes{$newpfx};
-                    $results{$newpfx} = $return_path ? ($all ? [@{ $results{$newpfx} || [] }, "$dir/$entry/"] : "$dir/$entry/") : undef
-                        if ($all && $return_path || !exists($results{$newpfx})) && $list_prefixes;
+                    $results{$newpfx}{prefix_paths} = [@{ $results{$newpfx}{prefix_paths} || [] }, "$dir/$entry/"] if $list_prefixes;
+                    $results{$newpfx}{library_path} = [@{ $results{$newpfx}{library_path} || [] }, $incdir       ] if $list_prefixes && $return_library_path;
                     push @prefixes, $newpfx if $recurse;
                 }
             }
@@ -119,7 +120,8 @@ sub list_modules($$) {
                 if($entry =~ $pod_rx) {
                     my $key = $prefix.$1;
                     next if $re_wildcard && $key !~ $re_wildcard;
-                    $results{$key} = $return_path ? ($all ? [@{ $results{$key} || [] }, "$dir/$entry"] : "$dir/$entry") : undef;
+                    $results{$key}{pod_path}     = $all ? [@{ $results{$key}{pod_path}     || [] }, "$dir/$entry"] : $results{$key}{pod_path}     || "$dir/$entry";
+                    $results{$key}{library_path} = $all ? [@{ $results{$key}{library_path} || [] }, $incdir      ] : $results{$key}{library_path} || $incdir        if $return_library_path;
                 }
             }
         }
@@ -201,7 +203,7 @@ sub _convert_wildcard_to_re {
 }
 
 1;
-# ABSTRACT: A fork of Module::List
+# ABSTRACT: Module::List, with more options
 
 =for Pod::Coverage .+
 
@@ -209,7 +211,7 @@ sub _convert_wildcard_to_re {
 
 Use like you would L<Module::List>, e.g.:
 
- use PERLANCAR::Module::List qw(list_modules);
+ use Module::List::More qw(list_modules);
 
  $id_modules = list_modules("Data::ID::", { list_modules => 1});
  $prefixes = list_modules("", { list_prefixes => 1, recurse => 1 });
@@ -217,10 +219,7 @@ Use like you would L<Module::List>, e.g.:
 
 =head1 DESCRIPTION
 
-This module is my personal experimental fork of L<Module::List>; the experiment
-has also produced other forks like L<Module::List::Tiny>,
-L<Module::List::Wildcard>. It's like Module::List, except for the following
-differences:
+This module is like L<Module::List>, except for the following differences:
 
 =over
 
@@ -237,6 +236,11 @@ Path separator is hard-coded as C</>.
 If set to true and C<return_path> is also set to true, will return all found
 paths for each module instead of just the first found one. The values of result
 will be an arrayref containing all found paths.
+
+=item * Recognize C<return_library_path> option
+
+If set to true, will return a C<library_path>, which is the associated @INC
+entry that produces the result.
 
 =item * Recognize C<wildcard> option
 
@@ -286,6 +290,13 @@ results in something like:
  }
 
 =back
+
+
+=head1 HISTORY
+
+This module began its life as L<PERLANCAR::Module::List>, my personal
+experimental fork of L<Module::List>; the experiment has also produced other
+forks like L<Module::List::Tiny>, L<Module::List::Wildcard>.
 
 
 =head1 SEE ALSO

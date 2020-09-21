@@ -26,6 +26,9 @@ write_text "$tempdir/lib2/Mod3/Sub1.pm", "";
 mkdir      "$tempdir/lib2/Mod3/Sub2";
 write_text "$tempdir/lib2/Mod3/Sub2/SubSub1.pm", "";
 
+#mkdir      "$tempdir/lib3";
+#write_text "$tempdir/lib3/Mod1.pm", "";
+
 subtest "all" => sub {
 
     diag explain ''; # trigger loading of Data::Dumper before we modify @INC
@@ -36,13 +39,21 @@ subtest "all" => sub {
 
     subtest "opt:list_modules=1" => sub {
         $res = list_modules('', {list_modules=>1});
-        is_deeply($res, {'Mod1'=>undef, 'Mod2'=>undef})
-            or diag explain $res;
+        is_deeply($res, {
+            'Mod1'=>{module_path=>"$tempdir/lib1/Mod1.pm"},
+            'Mod2'=>{module_path=>"$tempdir/lib1/Mod2.pm"},
+        }) or diag explain $res;
 
         # opt:recurse=1
         $res = list_modules('', {list_modules=>1, recurse=>1});
-        is_deeply($res, {'Mod1'=>undef, 'Mod2'=>undef, 'Mod2::Sub1'=>undef, 'Mod2::Sub2'=>undef, 'Mod3::Sub1'=>undef, 'Mod3::Sub2::SubSub1'=>undef})
-            or diag explain $res;
+        is_deeply($res, {
+            'Mod1'=>{module_path=>"$tempdir/lib1/Mod1.pm"},
+            'Mod2'=>{module_path=>"$tempdir/lib1/Mod2.pm"},
+            'Mod2::Sub1'=>{module_path=>"$tempdir/lib1/Mod2/Sub1.pm"},
+            'Mod2::Sub2'=>{module_path=>"$tempdir/lib1/Mod2/Sub2.pm"},
+            'Mod3::Sub1'=>{module_path=>"$tempdir/lib2/Mod3/Sub1.pm"},
+            'Mod3::Sub2::SubSub1'=>{module_path=>"$tempdir/lib2/Mod3/Sub2/SubSub1.pm"},
+        }) or diag explain $res;
 
         # opt:wildcard=1
         subtest "opt:wildcard=1" => sub {
@@ -50,37 +61,67 @@ subtest "all" => sub {
                 unless $INC{"String/Wildcard/Bash.pm"};
 
             $res = list_modules('Mod[23]*', {list_modules=>1, wildcard=>1});
-            is_deeply($res, {'Mod2'=>undef})
-                or diag explain $res;
+            is_deeply($res, {'Mod2'=>{module_path=>"$tempdir/lib1/Mod2.pm"}}) or diag explain $res;
             $res = list_modules('Mod[23]*::*', {list_modules=>1, wildcard=>1});
-            is_deeply($res, {'Mod2::Sub1'=>undef, 'Mod2::Sub2'=>undef, 'Mod3::Sub1'=>undef})
-                or diag explain $res;
+            is_deeply($res, {
+                'Mod2::Sub1'=>{module_path=>"$tempdir/lib1/Mod2/Sub1.pm"},
+                'Mod2::Sub2'=>{module_path=>"$tempdir/lib1/Mod2/Sub2.pm"},
+                'Mod3::Sub1'=>{module_path=>"$tempdir/lib2/Mod3/Sub1.pm"},
+            }) or diag explain $res;
             $res = list_modules('*::Sub1', {list_modules=>1, wildcard=>1});
-            is_deeply($res, {'Mod2::Sub1'=>undef, 'Mod3::Sub1'=>undef})
-                or diag explain $res;
+            is_deeply($res, {
+                'Mod2::Sub1'=>{module_path=>"$tempdir/lib1/Mod2/Sub1.pm"},
+                'Mod3::Sub1'=>{module_path=>"$tempdir/lib2/Mod3/Sub1.pm"},
+            }) or diag explain $res;
             $res = list_modules('**Sub1', {list_modules=>1, wildcard=>1});
-            is_deeply($res, {'Mod2::Sub1'=>undef, 'Mod3::Sub1'=>undef, 'Mod3::Sub2::SubSub1'=>undef})
-                or diag explain $res;
+            is_deeply($res, {
+                'Mod2::Sub1'=>{module_path=>"$tempdir/lib1/Mod2/Sub1.pm"},
+                'Mod3::Sub1'=>{module_path=>"$tempdir/lib2/Mod3/Sub1.pm"},
+                'Mod3::Sub2::SubSub1'=>{module_path=>"$tempdir/lib2/Mod3/Sub2/SubSub1.pm"},
+            }) or diag explain $res;
             # recurse=>1 does not change the fact that we match wildcard against full module name
             $res = list_modules('*Sub1', {list_modules=>1, wildcard=>1, recurse=>1});
             is_deeply($res, {})
                 or diag explain $res;
             # recurse=>1 does not change the fact that we match wildcard against full module name
             $res = list_modules('*::*Sub1', {list_modules=>1, wildcard=>1, recurse=>1});
-            is_deeply($res, {'Mod2::Sub1'=>undef, 'Mod3::Sub1'=>undef})
-                or diag explain $res;
+            is_deeply($res, {
+                'Mod2::Sub1'=>{module_path=>"$tempdir/lib1/Mod2/Sub1.pm"},
+                'Mod3::Sub1'=>{module_path=>"$tempdir/lib2/Mod3/Sub1.pm"},
+            }) or diag explain $res;
         };
+
+        # opt:return_library_path
+        $res = list_modules('', {list_modules=>1, return_library_path=>1});
+        is_deeply($res, {
+            'Mod1'=>{module_path=>"$tempdir/lib1/Mod1.pm", library_path=>"$tempdir/lib1"},
+            'Mod2'=>{module_path=>"$tempdir/lib1/Mod2.pm", library_path=>"$tempdir/lib1"},
+        }) or diag explain $res;
+
+        # opt:return_library_path + opt:all
+        $res = list_modules('', {list_modules=>1, return_library_path=>1, all=>1});
+        is_deeply($res, {
+            'Mod1'=>{module_path=>["$tempdir/lib1/Mod1.pm", "$tempdir/lib2/Mod1.pm"], library_path=>["$tempdir/lib1", "$tempdir/lib2"]},
+            'Mod2'=>{module_path=>["$tempdir/lib1/Mod2.pm"], library_path=>["$tempdir/lib1"]},
+        }) or diag explain $res;
     };
 
     subtest "opt:list_prefixes=1" => sub {
         $res = list_modules('', {list_prefixes=>1});
-        is_deeply($res, {'Mod1::'=>undef, 'Mod2::'=>undef, 'Mod3::'=>undef})
-            or diag explain $res;
+        is_deeply($res, {
+            'Mod1::'=>{prefix_paths=>["$tempdir/lib1/Mod1/"]},
+            'Mod2::'=>{prefix_paths=>["$tempdir/lib1/Mod2/"]},
+            'Mod3::'=>{prefix_paths=>["$tempdir/lib2/Mod3/"]},
+        }) or diag explain $res;
 
         # opt:recurse=1
         $res = list_modules('', {list_prefixes=>1, recurse=>1});
-        is_deeply($res, {'Mod1::'=>undef, 'Mod2::'=>undef, 'Mod3::'=>undef, 'Mod3::Sub2::'=>undef})
-            or diag explain $res;
+        is_deeply($res, {
+            'Mod1::'=>{prefix_paths=>["$tempdir/lib1/Mod1/"]},
+            'Mod2::'=>{prefix_paths=>["$tempdir/lib1/Mod2/"]},,
+            'Mod3::'=>{prefix_paths=>["$tempdir/lib2/Mod3/"]},,
+            'Mod3::Sub2::'=>{prefix_paths=>["$tempdir/lib2/Mod3/Sub2/"]},
+        }) or diag explain $res;
 
         # opt:wildcard=1
         subtest "opt:wildcard=1" => sub {
@@ -88,19 +129,23 @@ subtest "all" => sub {
                 unless $INC{"String/Wildcard/Bash.pm"};
 
             $res = list_modules('Mod[23]*', {list_prefixes=>1, wildcard=>1});
-            is_deeply($res, {'Mod2::'=>undef, 'Mod3::'=>undef})
-                or diag explain $res;
+            is_deeply($res, {
+                'Mod2::'=>{prefix_paths=>["$tempdir/lib1/Mod2/"]},
+                'Mod3::'=>{prefix_paths=>["$tempdir/lib2/Mod3/"]},
+            }) or diag explain $res;
             $res = list_modules('Mod[23]*::', {list_prefixes=>1, wildcard=>1});
-            is_deeply($res, {'Mod2::'=>undef, 'Mod3::'=>undef})
-                or diag explain $res;
+            is_deeply($res, {
+                'Mod2::'=>{prefix_paths=>["$tempdir/lib1/Mod2/"]},
+                'Mod3::'=>{prefix_paths=>["$tempdir/lib2/Mod3/"]},
+            }) or diag explain $res;
 
             # XXX test wildcard+recurse
         };
     };
 
-    # XXX test opt:list_modules + opt:list_prefixes
+    # XXX test opt:list_pod
 
-    # XXX test opt:return_path
+    # XXX test opt:list_modules + opt:list_prefixes
 
     # XXX test opt:all
 };
