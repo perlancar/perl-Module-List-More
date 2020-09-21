@@ -1,6 +1,8 @@
-package PERLANCAR::Module::List;
+package Module::List::More;
 
+# AUTHORITY
 # DATE
+# DIST
 # VERSION
 
 #IFUNBUILT

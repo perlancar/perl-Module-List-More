@@ -6,7 +6,7 @@ use Test::More 0.98;
 
 use File::Slurper qw(write_text);
 use File::Temp qw(tempfile tempdir);
-use PERLANCAR::Module::List qw(list_modules);
+use Module::List::More qw(list_modules);
 
 my $tempdir = tempdir(CLEANUP => !$ENV{DEBUG});
 diag "tempdir=$tempdir" if $ENV{DEBUG};
