@@ -75,10 +75,23 @@ sub list_modules($$) {
     return {} unless $list_modules || $list_prefixes || $list_pod;
     my $return_path = $options->{return_path};
     my $return_library_path = $options->{return_library_path};
+    my $return_version = $options->{return_version};
     my $all = $options->{all};
     my @prefixes = ($prefix);
     my %seen_prefixes;
     my %results;
+    my $_set_or_add_result = sub {
+        my ($key, $result_field, $val, $always_all) = @_;
+        if (!$result_field) {
+            $results{$key} ||= undef;
+        } elsif ($all || $always_all) {
+            $results{$key}{$result_field} ||= [];
+            push @{ $results{$key}{$result_field} }, $val;
+        } else {
+            $results{$key}{$result_field} = $val
+                unless exists $results{$key}{$result_field};
+        }
+    };
     while(@prefixes) {
         my $prefix = pop(@prefixes);
         my @dir_suffix = split(/::/, $prefix);
@@ -98,8 +111,16 @@ sub list_modules($$) {
                         $entry =~ $pod_rx)) {
                     my $key = $prefix.$1;
                     next if $re_wildcard && $key !~ $re_wildcard;
-                    $results{$key}{module_path}  = $all ? [@{ $results{$key}{module_path}  || [] }, "$dir/$entry"] : $results{$key}{module_path}  || "$dir/$entry";
-                    $results{$key}{library_path} = $all ? [@{ $results{$key}{library_path} || [] }, $incdir]       : $results{$key}{library_path} || $incdir        if $return_library_path;
+                    my $path = "$dir/$entry";
+                    $_set_or_add_result->($key);
+                    $_set_or_add_result->($key, 'module_path', $path) if $return_path;
+                    $_set_or_add_result->($key, 'library_path', $incdir) if $return_library_path;
+                    if ($return_version)      {
+                        require ExtUtils::MakeMaker;
+                        my $v = MM->parse_version($path);
+                        $v = undef if $v eq 'undef';
+                        $_set_or_add_result->($key, 'module_version', $v);
+                    }
                 } elsif(($list_prefixes || $recurse) &&
                             ($entry ne '.' && $entry ne '..') &&
                             $entry =~ $dir_rx &&
@@ -108,8 +129,11 @@ sub list_modules($$) {
                     my $newmod = $prefix.$entry;
                     my $newpfx = $newmod."::";
                     next if exists $seen_prefixes{$newpfx};
-                    $results{$newpfx}{prefix_paths} = [@{ $results{$newpfx}{prefix_paths} || [] }, "$dir/$entry/"] if $list_prefixes;
-                    $results{$newpfx}{library_path} = [@{ $results{$newpfx}{library_path} || [] }, $incdir       ] if $list_prefixes && $return_library_path;
+                    if ($list_prefixes) {
+                        $_set_or_add_result->($newpfx);
+                        $_set_or_add_result->($newpfx, 'prefix_paths', "$dir/$entry/", 'always_add') if $return_path;
+                        $_set_or_add_result->($newpfx, 'library_path', $incdir, 'always_add') if $return_library_path;
+                    }
                     push @prefixes, $newpfx if $recurse;
                 }
             }
@@ -120,8 +144,9 @@ sub list_modules($$) {
                 if($entry =~ $pod_rx) {
                     my $key = $prefix.$1;
                     next if $re_wildcard && $key !~ $re_wildcard;
-                    $results{$key}{pod_path}     = $all ? [@{ $results{$key}{pod_path}     || [] }, "$dir/$entry"] : $results{$key}{pod_path}     || "$dir/$entry";
-                    $results{$key}{library_path} = $all ? [@{ $results{$key}{library_path} || [] }, $incdir      ] : $results{$key}{library_path} || $incdir        if $return_library_path;
+                    $_set_or_add_result->($key);
+                    $_set_or_add_result->($key, 'pod_path', "$dir/$entry") if $return_path;
+                    $_set_or_add_result->($key, 'library_path', $incdir) if $return_library_path;
                 }
             }
         }
@@ -213,8 +238,16 @@ Use like you would L<Module::List>, e.g.:
 
  use Module::List::More qw(list_modules);
 
- $id_modules = list_modules("Data::ID::", { list_modules => 1});
- $prefixes = list_modules("", { list_prefixes => 1, recurse => 1 });
+ $id_modules = list_modules("Data::ID::", { list_modules => 1, return_path => 1});
+ # Sample result:
+ # {
+ #   'Data::ID::One' => {
+ #     module_path=>"/home/s1/perl5/perlbrew/perls/perl-5.30.2/lib/site_perl/5.30.2/Data/ID/One.pm",
+ #   },
+ #   'Data::ID::Two' => {
+ #     module_path=>"/home/s1/perl5/perlbrew/perls/perl-5.30.2/lib/site_perl/5.30.2/Data/ID/Two.pm",
+ #   },
+ # }
 
 
 =head1 DESCRIPTION
@@ -239,8 +272,13 @@ will be an arrayref containing all found paths.
 
 =item * Recognize C<return_library_path> option
 
-If set to true, will return a C<library_path>, which is the associated @INC
-entry that produces the result.
+If set to true, will return a C<library_path> result key, which is the
+associated @INC entry that produces the result.
+
+=item * Recognize C<return_library_path> option
+
+If set to true, will parse module source file with L<ExtUtils::MakeMaker>'s
+C<parse_version> and return the result in C<module_version> key.
 
 =item * Recognize C<wildcard> option
 
