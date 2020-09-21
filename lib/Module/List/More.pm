@@ -295,10 +295,12 @@ will be an arrayref containing all found paths.
 If set to true, will return a C<library_path> result key, which is the
 associated @INC entry that produces the result.
 
-=item * Recognize C<return_library_path> option
+=item * Recognize C<return_version> option
 
 If set to true, will parse module source file with L<ExtUtils::MakeMaker>'s
-C<parse_version> and return the result in C<module_version> key.
+C<parse_version> and return the result in C<module_version> key. If version
+cannot be detected, a proper undefined value C<undef> (instead of the string
+C<'undef'>) is returned.
 
 =item * Recognize C<wildcard> option
 
