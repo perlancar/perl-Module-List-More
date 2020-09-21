@@ -238,14 +238,34 @@ Use like you would L<Module::List>, e.g.:
 
  use Module::List::More qw(list_modules);
 
- $id_modules = list_modules("Data::ID::", { list_modules => 1, return_path => 1});
+ $id_modules = list_modules("Data::ID::", { list_modules=>1, return_path=>1, return_library_path=>1, return_version=>1});
  # Sample result:
  # {
  #   'Data::ID::One' => {
  #     module_path=>"/home/s1/perl5/perlbrew/perls/perl-5.30.2/lib/site_perl/5.30.2/Data/ID/One.pm",
+ #     library_path=>"/home/s1/perl5/perlbrew/perls/perl-5.30.2/lib/site_perl/5.30.2",
+ #     module_version=>'0.01',
  #   },
  #   'Data::ID::Two' => {
  #     module_path=>"/home/s1/perl5/perlbrew/perls/perl-5.30.2/lib/site_perl/5.30.2/Data/ID/Two.pm",
+ #     library_path=>"/home/s1/perl5/perlbrew/perls/perl-5.30.2/lib/site_perl/5.30.2",
+ #     module_version=>'0.02',
+ #   },
+ # }
+
+ {
+   local @INC = ('lib', @INC);
+   $id_modules = list_modules("Data::ID::", { list_modules=>1, all=>1, return_path=>1, return_version=>1});
+ }
+ # Sample result:
+ # {
+ #   'Data::ID::One' => {
+ #     module_path=>["lib/Data/ID/One.pm", "/home/s1/perl5/perlbrew/perls/perl-5.30.2/lib/site_perl/5.30.2/Data/ID/One.pm"],
+ #     module_version=>[undef, '0.01'],
+ #   },
+ #   'Data::ID::Two' => {
+ #     module_path=>["/home/s1/perl5/perlbrew/perls/perl-5.30.2/lib/site_perl/5.30.2/Data/ID/Two.pm"],
+ #     module_version=>['0.02'],
  #   },
  # }
 
