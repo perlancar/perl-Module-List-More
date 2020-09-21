@@ -355,7 +355,7 @@ results in something like:
 =head1 HISTORY
 
 This module began its life as L<PERLANCAR::Module::List>, my personal
-experimental fork of L<Module::List>; the experiment has also produced other
+experimental fork of L<Module::List>. The experiment has also produced other
 forks like L<Module::List::Tiny>, L<Module::List::Wildcard>.
 
 
