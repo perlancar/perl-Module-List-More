@@ -29,8 +29,11 @@ write_text "$tempdir/lib2/Mod3/Sub2/SubSub1.pm", "";
 subtest "all" => sub {
 
     diag explain ''; # trigger loading of Data::Dumper before we modify @INC
-    require String::Wildcard::Bash; # ditto
     require ExtUtils::MakeMaker; # ditto
+    # load optional prereqs
+    eval {
+        require String::Wildcard::Bash; # ditto
+    };
 
     local @INC = ("$tempdir/lib1", "$tempdir/lib2");
     my $res;
