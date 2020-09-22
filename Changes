@@ -1,3 +1,11 @@
+0.004009  2020-09-22  Released-By: PERLANCAR; Urgency: medium
+
+	  - [bugfix][regression] Do not force loading optional dep
+	    String::Wildcard::Bash in test (RT#133379).
+
+	  - [doc] Tiny grammar tweak.
+
+
 0.004008  2020-09-21  Released-By: PERLANCAR; Urgency: low
 
 	  - No functional changes.
